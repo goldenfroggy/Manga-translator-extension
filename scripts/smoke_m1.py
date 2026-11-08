@@ -82,7 +82,15 @@ def main() -> None:
         for piece in ("WON", "HURT", "STAY", "CRY"):
             assert piece in ok_texts, f"OCR thiếu từ {piece!r} — got {ok_texts!r}"
         assert all(p["png_b64"] for p in j1["patches"]), "patch phải có b64 PNG"
-        assert j1["regions"][0]["vi_text"] == "", "M1: vi_text rỗng (dịch là M2)"
+        # M2: vi_text có thể đã được điền (nếu cấu hình LLM). Kiểm theo cờ engine:
+        engine = j1["engine"]["translate"]
+        if engine == "off":
+            assert j1["regions"][0]["vi_text"] == "", "engine=off thì vi_text phải rỗng"
+        else:
+            for r in j1["regions"]:
+                if r["src_text"]:
+                    assert r["vi_text"], f"engine={engine} mà region {r['id']} đọc được không có vi_text"
+        print(f"[translate] engine={engine} OK")
 
         t0 = time.perf_counter()
         r2 = c.post("/pages/process",

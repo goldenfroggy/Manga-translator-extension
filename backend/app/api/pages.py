@@ -7,6 +7,11 @@ Contract `/pages/process`:
 - Response: `page_id`, `size`, `regions[]`, `patches[]`, `timing_ms`.
 - Cache theo `sha256 + lang_src + pipeline_ver` (doc 02 §4): có cache → trả
   ngay, patch PNG nạp lại từ đĩa rồi b64.
+
+M2 (dịch, doc 04 §2): tầng dịch chạy SAU khi có trang (cache-trang hay mới) —
+cache-trang M1 giữ nguyên (pipeline_ver = m1-rapidocr, không chứa vi_text).
+Vi_text có cache riêng theo `sha256(texts) + lang + trans_ver`. LLM chưa cấu
+hình (.env trống) hoặc lỗi → vi_text rỗng + engine flag, trang vẫn trả 200.
 """
 from __future__ import annotations
 
@@ -25,10 +30,12 @@ from app.config import Settings, get_settings
 from app.db import get_or_create_chapter, get_page, put_page
 from app.pipeline.orchestrate import PIPELINE_VER, PagePipeline
 from app.pipeline.types import PageResult, Region
+from app.translate.translator import PageTranslator
 
 router = APIRouter()
 
 _pipeline = PagePipeline()
+_translator = PageTranslator()
 
 
 class _ChapterReq(BaseModel):
@@ -146,17 +153,26 @@ def process_page(
         return JSONResponse(status_code=400,
                             content={"error": "Ảnh không decode được (png/jpg/webp?)"})
 
-    # sha256 từ bytes thật — client chỉ gửi hash để tuỳ chọn; luôn tính lại
     page_id = hashlib.sha256(image).hexdigest()
 
     cached = get_page(page_id, lang_src, PIPELINE_VER)
+    result: dict
     if cached is not None:
         try:
-            return _load_from_cache(page_id, cached["result"],
-                                    _resolve_patch_dir(settings, cached))
+            result = _load_from_cache(page_id, cached["result"],
+                                      _resolve_patch_dir(settings, cached))
         except KeyError:  # cache hư (file patch mất) → chạy lại như miss
-            cached = None
+            result = _pipeline_response(page_id, img, settings, lang_src)
+    else:
+        result = _pipeline_response(page_id, img, settings, lang_src)
 
+    # Tầng dịch (M2, doc 04 §2): sau khi có trang — cả cache-trang lẫn vừa pipeline
+    _translator.translate_result(result, lang_src)
+    return result
+
+
+def _pipeline_response(page_id: str, img: np.ndarray, settings: Settings, lang_src: str) -> dict:
+    """Chạy pipeline M1 + cache trang; trả dict JSON (chưa có vi_text)."""
     res = _pipeline.process(img)
     result = _result_to_response(page_id, img.shape, res)
 

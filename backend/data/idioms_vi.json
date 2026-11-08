@@ -1,3 +1,9 @@
-# Rỗng cho M0 — sẽ thêm thành ngữ khi tới M2/M5 (doc 04 §4)
-# Format: [{"pattern": "break a leg", "vi": "chúc may mắn", "type": "idiom"}]
-[]
+[
+  {"pattern": "break a leg", "vi": "chúc may mắn", "type": "idiom"},
+  {"pattern": "piece of cake", "vi": "như ăn kẹo (dễ ợt)", "type": "idiom"},
+  {"pattern": "get off my back", "vi": "buồn tao ra", "type": "idiom"},
+  {"pattern": "cut it out", "vi": "thôi đi", "type": "idiom"},
+  {"pattern": "go for it", "vi": "làm tới đi", "type": "idiom"},
+  {"pattern": "hang in there", "vi": "kiên trì lên", "type": "idiom"},
+  {"pattern": "let the cat out of the bag", "vi": "lỡ miệng lộ bí mật", "type": "idiom"}
+]

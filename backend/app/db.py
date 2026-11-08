@@ -36,6 +36,14 @@ CREATE TABLE IF NOT EXISTS chapters (
     url        TEXT,
     created_at REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS translations (
+    src_hash    TEXT NOT NULL,          -- sha256(json các {id,src_text}) của 1 trang
+    lang        TEXT NOT NULL,
+    trans_ver   TEXT NOT NULL,          -- prompt_ver + model + idioms_ver (doc 04 §7)
+    item_json   TEXT NOT NULL,          -- map {"<id>": "vi_text", ...}
+    created_at  REAL NOT NULL,
+    PRIMARY KEY (src_hash, lang, trans_ver)
+);
 """
 
 
@@ -107,3 +115,24 @@ def get_or_create_chapter(series: str, chapter: str | None = None,
             (series, chapter, url, now),
         )
         return int(cur.lastrowid)
+
+
+# ---------- translations cache (M2, doc 04 §7) ----------
+
+def get_translation(src_hash: str, lang: str, trans_ver: str) -> dict[str, str] | None:
+    """Map {id: vi_text} của trang chữ này đã dịch chưa — theo key (hash, lang, trans_ver)."""
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT item_json FROM translations WHERE src_hash=? AND lang=? AND trans_ver=?",
+            (src_hash, lang, trans_ver),
+        ).fetchone()
+    return json.loads(row["item_json"]) if row is not None else None
+
+
+def put_translation(src_hash: str, lang: str, trans_ver: str, items: dict[str, str]) -> None:
+    with connect() as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO translations "
+            "(src_hash, lang, trans_ver, item_json, created_at) VALUES (?, ?, ?, ?, ?)",
+            (src_hash, lang, trans_ver, json.dumps(items, ensure_ascii=False), time.time()),
+        )
