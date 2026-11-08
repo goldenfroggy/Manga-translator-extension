@@ -91,23 +91,42 @@ def _result_to_response(page_id: str, img_shape, res: PageResult) -> dict:
     }
 
 
-def _cached_to_response(page_id: str, cached: dict) -> dict:
-    """Nạp lại kết quả cache: patch từ đĩa → b64."""
-    result = cached["result"]
+def _resolve_patch_dir(settings: Settings, cached: dict) -> Path:
+    """patches_dir trong DB (path tương đối, hoặc tuyệt đối của bản cũ) → Path thật.
+
+    Trích phần sau 'cache/' để DB copy giữa máy nào (Windows/WSL) cũng resolve
+    về đúng layout `cache/pages/{hash16}/` — bẫy 2026-11-08: path tuyệt đối
+    khiến cache-hit máy khác trả patch rỗng.
+    """
+    raw = cached["patches_dir"].replace("\\", "/")
+    if "cache/" in raw:
+        raw = raw.split("cache/")[-1]
+    return settings.cache_dir / raw
+
+
+def _load_from_cache(page_id: str, result: dict, cache_dir: Path) -> dict:
+    """Nạp patch PNG từ đĩa → b64. Không file nào đọc được → coi như cache hư."""
+    ok = 0
     for p in result.get("patches", []):
-        f = Path(p["file"])
+        f = cache_dir / Path(p["file"]).name
+        if f.exists():
+            p["png_b64"] = base64.b64encode(f.read_bytes()).decode()
+            ok += 1
+        else:
+            p["png_b64"] = ""
         p.pop("file", None)
-        p["png_b64"] = base64.b64encode(f.read_bytes()).decode() if f.exists() else ""
+    if result.get("patches") and not ok:
+        raise KeyError("cache-hư")  # endpoint đón → chạy lại pipeline
     return {**result, "page_id": page_id, "cached": True}
 
 
-def _store_patches(result: dict, patches_dir: Path) -> None:
-    """Lưu patch PNG ra đĩa; trong result.return_json chỉ giữ đường dẫn."""
+def _store_patches(result: dict, patches_dir: Path, patches_dir_rel: str) -> None:
+    """Lưu patch PNG ra đĩa; result chỉ giữ path TƯƠNG ĐỐI (repo/máy nào cũng đọc được)."""
     patches_dir.mkdir(parents=True, exist_ok=True)
     for i, p in enumerate(result["patches"]):
         f = patches_dir / f"patch-{i}.png"
         f.write_bytes(base64.b64decode(p["png_b64"]))
-        p["file"] = str(f)
+        p["file"] = f"{patches_dir_rel}/patch-{i}.png"
         del p["png_b64"]
 
 
@@ -132,18 +151,22 @@ def process_page(
 
     cached = get_page(page_id, lang_src, PIPELINE_VER)
     if cached is not None:
-        return _cached_to_response(page_id, cached)
+        try:
+            return _load_from_cache(page_id, cached["result"],
+                                    _resolve_patch_dir(settings, cached))
+        except KeyError:  # cache hư (file patch mất) → chạy lại như miss
+            cached = None
 
     res = _pipeline.process(img)
     result = _result_to_response(page_id, img.shape, res)
 
-    # Cache (doc 02 §4): patch PNG ra đĩa, DB chỉ giữ path
-    patches_dir = settings.cache_dir / "pages" / page_id[:16]
-    _store_patches(result, patches_dir)
-    put_page(page_id, lang_src, PIPELINE_VER, result, str(patches_dir))
+    # Cache (doc 02 §4): patch PNG ra đĩa, DB chỉ giữ path tương đối
+    rel = f"pages/{page_id[:16]}"
+    _store_patches(result, settings.cache_dir / rel, rel)
+    put_page(page_id, lang_src, PIPELINE_VER, result, rel)
 
     # Trả về b64 — nạp lại từ đĩa (cùng code path với cache hit để tự kiểm chứng)
-    return _cached_to_response(page_id, {"result": result, "patches_dir": str(patches_dir)})
+    return _load_from_cache(page_id, result, settings.cache_dir / rel)
 
 
 @router.post("/chapters")
