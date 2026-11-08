@@ -14,5 +14,5 @@ def health(settings: Settings = Depends(get_settings)):
         "status": "ok",
         "models_loaded": reg.list_loaded(),
         "ram": reg.ram_usage_mb(),
-        "version": "m0",
+        "version": "m1",
     }
