@@ -1,2 +1,2 @@
-# Manga-translate-extension
+# Manga-translator-extension
 Extension for chrome

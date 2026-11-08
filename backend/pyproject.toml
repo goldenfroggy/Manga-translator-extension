@@ -1,0 +1,36 @@
+[project]
+name = "manga-translator-backend"
+version = "0.1.0"
+description = "Local backend for the Manga Translator Chrome extension (EN/JA -> VI)"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "onnxruntime>=1.17",
+    "rapidocr>=3.0",
+    "opencv-python-headless>=4.10",
+    "numpy>=2.0",
+    "pillow>=10.3",
+    "psutil>=5.9",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "ruff>=0.4",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+# backend/ chứa cả data/ và models/ — setuptools sẽ từ chối build nếu để
+# auto-discovery quét cả 3 thư mục top-level (lỗi "Multiple top-level packages")
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

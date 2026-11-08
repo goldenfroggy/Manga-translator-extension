@@ -1,0 +1,13 @@
+# Cài trực tiếp, KHÔNG qua build editable — lách hoàn toàn lỗi setuptools
+# "Multiple top-level packages discovered in a flat-layout" trên Windows.
+fastapi>=0.111
+uvicorn[standard]>=0.30
+pydantic>=2.7
+pydantic-settings>=2.3
+onnxruntime>=1.17
+rapidocr>=3.0
+opencv-python-headless>=4.10
+numpy>=2.0
+pillow>=10.3
+psutil>=5.9
+httpx>=0.27
