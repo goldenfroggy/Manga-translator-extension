@@ -1,13 +1,18 @@
 @echo off
-rem Chay benchmark voi Python cua backend\.venv (co san deps) — khong dung python he thong.
+rem Chay benchmark voi Python co deps — uu tien backend\.venv (may dev),
+rem khong thi dung Python local backend\runtime\ (tu tai neu chua co, khong can cai Python).
 cd /d %~dp0
-set "PY=%~dp0backend\.venv\Scripts\python.exe"
-if not exist "%PY%" (
-  echo [!] Chua co backend\.venv voi day du deps. Chay "setup-backend.bat" truoc.
-  echo     Neu van muon dung Python he thong:
-  echo       python -m pip install "numpy<2.3" opencv-python-headless rapidocr onnxruntime psutil
-  pause
-  exit /b 1
+set "PYVENV=%~dp0backend\.venv\Scripts\python.exe"
+if exist "%PYVENV%" (
+  set "PY=%PYVENV%"
+) else (
+  call backend\ensure-runtime.bat
+  if errorlevel 1 (pause & exit /b 1)
+  if not exist "%~dp0backend\runtime\Lib\site-packages\psutil" (
+    echo Chua cai deps — chay setup-backend.bat truoc.
+    pause
+    exit /b 1
+  )
 )
 "%PY%" scripts\benchmark.py %*
 if errorlevel 1 (
