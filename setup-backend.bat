@@ -1,23 +1,20 @@
 @echo off
-rem Khoi tao moi truong backend tren Windows (Python 3.11+)
-cd /d %~dp0backend
-if not exist .venv (
-  echo Tao venv...
-  python -m venv .venv || goto :err
-)
-call .venv\Scripts\activate.bat
-rem Cai dep bang requirements.txt (KHONG qua pip install -e — xanh lau loi build/editable)
-python -m pip install -q --disable-pip-version-check -r requirements.txt || goto :err
+rem Khoi tao moi truong backend tren Windows — KHONG can cai Python tren may:
+rem tai Python 3.11 local ve backend\runtime\ (ensure-runtime.bat) roi cai deps vao do.
+cd /d %~dp0
+call backend\ensure-runtime.bat
+if errorlevel 1 goto :err
+cd backend
+"%PY%" -m pip install -q --disable-pip-version-check --no-warn-script-location -r requirements.txt
+if errorlevel 1 goto :err
 echo.
-echo OK - moi truong san sang.
+echo OK - moi truong san sang (Python local: backend\runtime\python.exe).
 echo   Chay backend  : start-backend.bat
 echo   Chay benchmark: run-benchmark.bat
 goto :eof
 
 :err
 echo.
-echo LOI cai dat. Kiem tra:
-echo   python -V     (can 3.11+, winget install Python.Python.3.11 neu chua co)
-echo   Ket noi mang khi pip cai deps.
+echo LOI cai dat. Chay lai file nay de thu lai (phai da tai se duoc tai su dung).
 pause
 exit /b 1
