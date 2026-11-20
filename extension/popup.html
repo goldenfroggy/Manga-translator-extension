@@ -3,9 +3,20 @@
   <head>
     <meta charset="utf-8" />
     <title>Manga Translator</title>
+    <style>
+      body { width: 260px; font-family: sans-serif; margin: 10px; }
+      button { width: 100%; padding: 8px; cursor: pointer; }
+      #status { margin-top: 8px; font-size: 12px; min-height: 16px; }
+      .result { margin-top: 8px; font-size: 12px; padding: 4px; background: #f0f0f0; border-radius: 4px; }
+      .ok { color: green; }
+      .err { color: red; }
+    </style>
   </head>
   <body>
-    <h1>Manga Translator</h1>
-    <p>Backend status: Unknown</p>
+    <h3>Manga Translator</h3>
+    <button id="translate">Dịch trang này</button>
+    <div id="status"></div>
+    <div id="results"></div>
+    <script type="module" src="/src/popup.ts"></script>
   </body>
 </html>
