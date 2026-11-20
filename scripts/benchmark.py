@@ -45,11 +45,10 @@ def load_engines(detector_kind: str, onnx_path: pathlib.Path, threads: int, max_
     except ModuleNotFoundError as exc:
         sys.exit(
             f"Thiếu thư viện: {exc.name}. Bạn đang dùng Python không có deps của backend.\n"
-            "Cách 1 (khuyến nghị, Windows): chạy setup-backend.bat, sau đó dùng "
-            "run-benchmark.bat, hoặc:\n"
-            "  backend\\.venv\\Scripts\\python.exe scripts\\benchmark.py --testset testset\\en\n"
-            "Cách 2: cài deps thẳng vào Python hiện tại:\n"
-            "  python -m pip install \"numpy>=2.0\" opencv-python-headless rapidocr onnxruntime psutil"
+            "Cách 1 (khuyến nghị): chạy setup-backend.bat, sau đó dùng run-benchmark.bat.\n"
+            "  Python local nằm ở backend\\runtime\\python.exe (không cần cài Python).\n"
+            "Cách 2: cài deps vào Python đang dùng:\n"
+            "  <python> -m pip install -r backend\\requirements.txt"
         )
 
     loads: dict[str, float] = {}
